@@ -68,7 +68,7 @@ except Exception as e:
 
 # ==================== BUFFER TOÀN CỤC ====================
 sensor_buffer: List[list] = []
-BUFFER_SIZE = 2056
+BUFFER_SIZE = 512
 LAST_CHECKED_ID = 0
 
 # ==================== HÀM TRÍCH ĐẶC TRƯNG BACKEND ====================
@@ -251,7 +251,7 @@ async def run_prediction():
 
                 # 2. Cập nhật trạng thái hiện tại = lỗi mới nhất
                 c.execute("""
-                    UPDATE current_status 
+                    UPDATE status 
                     SET status = %s, message = %s, last_update = NOW()
                     WHERE id = 1
                 """, (fault_name, msg))
@@ -260,7 +260,7 @@ async def run_prediction():
                 # Chỉ cập nhật trạng thái hiện tại về Bình thường
                 # KHÔNG XÓA alerts → lịch sử vẫn còn đầy đủ
                 c.execute("""
-                    UPDATE current_status 
+                    UPDATE status 
                     SET status = 'Normal', 
                         message = 'Hệ thống đang hoạt động bình thường',
                         last_update = NOW()
@@ -433,11 +433,11 @@ def create_table_sensor():
     cursor.close()
     conn.close()
 #------------------ TẠO BẢNG CURRENT STATUS ------------------
-def create_table_current_status():
+def create_table_status():
     conn = connected_DB()
     cursor = conn.cursor()
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS current_status (
+        CREATE TABLE IF NOT EXISTS status(
             id INT PRIMARY KEY DEFAULT 1,
             status VARCHAR(50),          -- 'Normal' hoặc 'Electrical'/'Misalignment'/...
             message TEXT,
@@ -446,7 +446,7 @@ def create_table_current_status():
     """)
     # Đảm bảo luôn có 1 bản ghi
     cursor.execute("""
-        INSERT IGNORE INTO current_status (id, status, message) 
+        INSERT IGNORE INTO status (id, status, message) 
         VALUES (1, 'Normal', 'Hệ thống đang hoạt động bình thường')
     """)
     conn.commit()
@@ -707,12 +707,12 @@ async def reset_alert_id():
     finally:
         cursor.close()
         conn.close()
-@app.get("/GetCurrentStatus/", tags=["Alerts & Notifications"])
-def get_current_status():
+@app.get("/GetStatus/", tags=["Alerts & Notifications"])
+def get_status():
     conn = connected_DB()
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT status, message FROM current_status WHERE id = 1")
+        cursor.execute("SELECT status, message FROM status WHERE id = 1")
         result = cursor.fetchone()
         
         # Nếu chưa có bản ghi nào (hiếm xảy ra), trả về mặc định Normal
@@ -723,7 +723,7 @@ def get_current_status():
             }
         return result
     except Exception as e:
-        print("Lỗi lấy current_status:", e)
+        print("Lỗi lấy status:", e)
         raise HTTPException(status_code=500, detail="Lỗi server")
     finally:
         cursor.close()
@@ -734,7 +734,7 @@ def startup_event():
     create_talble_user()
     create_table_device()
     create_table_alerts()
-    create_table_current_status()
+    create_table_status()
     # Tạo device mặc định
     conn = connected_DB()
     c = conn.cursor()
@@ -749,5 +749,5 @@ def startup_event():
     LAST_CHECKED_ID = 0
 
     # Bắt đầu tự động chẩn đoán 
-    # asyncio.create_task(auto_predict_task()) 
+    asyncio.create_task(auto_predict_task()) 
     print("HỆ THỐNG ĐÃ SẴN SÀNG - TỰ ĐỘNG CHẨN ĐOÁN MỖI 3 GIÂY!")
