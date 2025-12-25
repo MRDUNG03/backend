@@ -25,7 +25,7 @@ from scipy.stats import kurtosis, skew
 import joblib
 from sklearn.preprocessing import StandardScaler
 from fastapi.middleware.cors import CORSMiddleware
-app = FastAPI(title="GIÁM SÁT TRẠNG THÁI ĐỘNG CƠ ĐIỆN ",openapi_url="/openapi.json",docs_url="/docs",description="API for monitoring electric motor status")
+app = FastAPI(title="GIÁM SÁT TRẠNG THÁI ĐỘNG CƠ ĐIỆN ",root_path="/api",docs_url="/docs",description="API for monitoring electric motor status")
 security = HTTPBasic()
 from fastapi.security.utils import get_authorization_scheme_param
 import pandas as pd
