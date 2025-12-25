@@ -1,6 +1,6 @@
 from fastapi import HTTPException, Path
 from typing import List
-from model.Connected_DB import connected_DB
+from model.connected_DB import connected_DB
 from model.SensorData import SensorData
 import traceback
 

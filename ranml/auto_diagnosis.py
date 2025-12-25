@@ -1,6 +1,6 @@
 # ml/auto_diagnosis.py
 import asyncio
-from model.Connected_DB import connected_DB
+from model.connected_DB import connected_DB
 from .predictor import predict
 
 BUFFER_SIZE = 6000

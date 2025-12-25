@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Query, status
 from model.LoginRequest import LoginRequest
-from model.Connected_DB import connected_DB
+from model.connected_DB import connected_DB
 from passlib.context import CryptContext
 
 app = None
