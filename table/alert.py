@@ -1,5 +1,5 @@
 
-from model.Connected_DB import connected_DB
+from model.connected_DB import connected_DB
 
 def create_table_alerts():
     conn = connected_DB()
