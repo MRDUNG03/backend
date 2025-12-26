@@ -72,31 +72,32 @@ async def auto_diagnosis_task():
                     update_cur.close()
 
                     # ===== MỚI: LƯU VÀO BẢNG ALERT (lịch sử cảnh báo) =====
+                    # ===== LƯU VÀO BẢNG ALERT =====
                     alert_cur = conn.cursor()
-                    if result == "Normal":
-                        # Chỉ lưu khi bình thường nếu bạn muốn (tùy chọn)
-                        # alert_cur.execute("""
-                        #     INSERT INTO alert (alert_type, message) 
-                        #     VALUES (%s, %s)
-                        # """, ("Normal", "Hệ thống hoạt động bình thường"))
-                        pass  # Bỏ qua để tránh spam bảng alert
-                    else:
-                        # Luôn lưu khi có lỗi
-                        alert_message = f"Phát hiện lỗi loại '{result}' từ mô hình AI"
+
+                    if result != "Normal":
+                        alert_message = f"Phát hiện lỗi loại '{result}'"
                         alert_cur.execute("""
-                            INSERT INTO alert (timestamp, alert_type, message) 
-                            VALUES (%s, %s, %s)
-                        """, (timestamp_now, result, alert_message))
-                        print(f"⚠️ ĐÃ GHI NHẬN CẢNH BÁO VÀO LỊCH SỬ: {result}")
+                            INSERT INTO alerts (device_id, alert, message, status)
+                            VALUES (%s, %s, %s, %s)
+                        """, (
+                            1,                 # device_id (đổi nếu có nhiều motor)
+                            result,            # alert
+                            alert_message,     # message
+                            "new"              # status
+                        ))
+
+                        print(f"⚠️ ĐÃ GHI NHẬN CẢNH BÁO: {result}")
 
                     conn.commit()
                     alert_cur.close()
 
-                    # Overlap 50% để không bỏ sót lỗi ở ranh giới
+
+                                        # Overlap 50% để không bỏ sót lỗi ở ranh giới
                     sensor_buffer = sensor_buffer[BUFFER_SIZE // 2:]
 
-            cursor.close()
-            conn.close()
+                    cursor.close()
+                    conn.close()
 
         except Exception as e:
             print(f"❌ Lỗi trong auto diagnosis: {e}")
