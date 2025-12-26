@@ -1,5 +1,6 @@
 # ml/auto_diagnosis.py
 import asyncio
+from datetime import datetime
 from model.connected_DB import connected_DB
 from .predictor import predict
 
@@ -53,22 +54,45 @@ async def auto_diagnosis_task():
 
                 print(f"📈 Nhận {len(new_samples)} mẫu MỚI → Buffer hiện tại: {len(sensor_buffer)} mẫu")
 
-                # Khi buffer đủ 10000 mẫu → chẩn đoán
+                # Khi buffer đủ BUFFER_SIZE mẫu → chẩn đoán
                 while len(sensor_buffer) >= BUFFER_SIZE:
                     segment = sensor_buffer[:BUFFER_SIZE]
                     result = predict(segment)
-                    print(f"🔥 KẾT QUẢ CHẨN ĐOÁN (dữ liệu mới): {result}")
+                    timestamp_now = datetime.now()
 
-                    # Cập nhật bảng status
+                    print(f"🔥 KẾT QUẢ CHẨN ĐOÁN ({timestamp_now.strftime('%H:%M:%S')}): {result}")
+
+                    # Cập nhật bảng status (realtime)
+                    message = "Hệ thống đang hoạt động bình thường" if result == "Normal" else f"PHÁT HIỆN LỖI: {result.upper()}"
                     update_cur = conn.cursor()
-                    message = "Hệ thống bình thường" if result == "Normal" else f"PHÁT HIỆN LỖI: {result}"
                     update_cur.execute("""
-                        UPDATE status SET status = %s, message = %s WHERE id = 1
-                    """, (result, message))
+                        UPDATE status SET status = %s, message = %s, last_update = %s WHERE id = 1
+                    """, (result, message, timestamp_now))
                     conn.commit()
                     update_cur.close()
 
-                    # Overlap 50% để không bỏ sót
+                    # ===== MỚI: LƯU VÀO BẢNG ALERT (lịch sử cảnh báo) =====
+                    alert_cur = conn.cursor()
+                    if result == "Normal":
+                        # Chỉ lưu khi bình thường nếu bạn muốn (tùy chọn)
+                        # alert_cur.execute("""
+                        #     INSERT INTO alert (alert_type, message) 
+                        #     VALUES (%s, %s)
+                        # """, ("Normal", "Hệ thống hoạt động bình thường"))
+                        pass  # Bỏ qua để tránh spam bảng alert
+                    else:
+                        # Luôn lưu khi có lỗi
+                        alert_message = f"Phát hiện lỗi loại '{result}' từ mô hình AI"
+                        alert_cur.execute("""
+                            INSERT INTO alert (timestamp, alert_type, message) 
+                            VALUES (%s, %s, %s)
+                        """, (timestamp_now, result, alert_message))
+                        print(f"⚠️ ĐÃ GHI NHẬN CẢNH BÁO VÀO LỊCH SỬ: {result}")
+
+                    conn.commit()
+                    alert_cur.close()
+
+                    # Overlap 50% để không bỏ sót lỗi ở ranh giới
                     sensor_buffer = sensor_buffer[BUFFER_SIZE // 2:]
 
             cursor.close()
@@ -76,5 +100,7 @@ async def auto_diagnosis_task():
 
         except Exception as e:
             print(f"❌ Lỗi trong auto diagnosis: {e}")
+            import traceback
+            traceback.print_exc()
 
-        await asyncio.sleep(3)  # Kiểm tra giây
+        await asyncio.sleep(3)  # Kiểm tra mỗi 3 giây
