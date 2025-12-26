@@ -1,5 +1,5 @@
 from fastapi import HTTPException, Path
-from typing import List
+from typing import Union, List, Optional
 from model.connected_DB import connected_DB
 from model.SensorData import SensorData
 import traceback
@@ -12,7 +12,7 @@ def sensor_api(fastapi_app):
 
     # ---------------- GET DATA ----------------
     @app.get("/getdata/", tags=["Sensor Data"])
-    async def get_sensor_data(limit: int = 100):
+    async def get_sensor_data(limit: int = 1):
         conn = connected_DB()
         cursor = conn.cursor(dictionary=True)
         try:
@@ -82,9 +82,21 @@ def sensor_api(fastapi_app):
             conn.close()
     # ESP32 POST DATA BACKEND
     @app.post("/upload_sensor", tags=["Sensor Data"])
-    async def upload_sensor(data: List[SensorData]):
-        if not data:
-            return {"status": "no_data"}
+    async def upload_sensor(data: Union[SensorData, List[SensorData]]):
+        """
+        Nhận dữ liệu cảm biến:
+        - Có thể là 1 object duy nhất (khi gửi từng cái một)
+        - Hoặc là danh sách nhiều object (khi gửi batch)
+        """
+        # Chuẩn hóa về dạng list để xử lý thống nhất
+        if isinstance(data, SensorData):
+            data_list = [data]
+        else:
+            data_list = data
+
+        if not data_list:
+            return {"status": "no_data", "rows": 0}
+
         try:
             conn = connected_DB()
             cursor = conn.cursor()
@@ -92,13 +104,20 @@ def sensor_api(fastapi_app):
                 INSERT INTO sensor_data (ax, ay, az, current, voltage, temp)
                 VALUES (%s, %s, %s, %s, %s, %s)
             """
-            values = [(d.ax, d.ay, d.az, d.current, d.voltage, d.temp) for d in data]
+            # Chuyển đổi thành tuple, temp có thể là None
+            values = [
+                (d.ax, d.ay, d.az, d.current, d.voltage, d.temp)
+                for d in data_list
+            ]
             cursor.executemany(sql, values)
             conn.commit()
             cursor.close()
             conn.close()
-            return {"status": "saved", "rows": len(data)}
+
+            print(f"Đã lưu thành công {len(data_list)} bản ghi từ ESP32")
+            return {"status": "saved", "rows": len(data_list)}
+
         except Exception as e:
             print("LỖI LƯU DỮ LIỆU:", e)
             traceback.print_exc()
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail="Lỗi lưu dữ liệu vào database")

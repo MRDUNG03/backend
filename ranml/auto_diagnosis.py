@@ -4,7 +4,7 @@ from datetime import datetime
 from model.connected_DB import connected_DB
 from .predictor import predict
 
-BUFFER_SIZE = 6000
+BUFFER_SIZE = 512
 sensor_buffer = []          # Buffer bắt đầu rỗng
 last_id = 0                 # Sẽ được cập nhật khi khởi động
 
