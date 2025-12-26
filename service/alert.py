@@ -26,21 +26,32 @@ def alert_api(app):
             conn.close()
 
     # ---------------- GET ALERT ----------------
-    @app.get("/getAlert/", tags=["Alerts & Notifications"], response_model=List[Alert])
+    @app.get("/getAlert/", tags=["Alerts & Notifications"])
     async def get_alerts():
         conn = connected_DB()
         cursor = conn.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT * FROM alerts ORDER BY timestamp DESC")
+            # RÕ RÀNG LIỆT KÊ CÁC CỘT → an toàn hơn
+            cursor.execute("""
+                SELECT id, device_id, alert, message, timestamp, status 
+                FROM alerts 
+                ORDER BY timestamp DESC
+            """)
             alerts = cursor.fetchall()
+
+            # Format thời gian thành chuẩn ISO để frontend parse dễ dàng
+            for alert in alerts:
+                if alert['timestamp']:
+                    alert['timestamp'] = alert['timestamp'].strftime("%Y-%m-%dT%H:%M:%S+07:00")
+
             return alerts
+
         except Exception as e:
             traceback.print_exc()
             raise HTTPException(status_code=500, detail=str(e))
         finally:
             cursor.close()
             conn.close()
-
     # ---------------- DELETE ALL ALERT ----------------
     @app.delete("/deleteAllAlerts/", tags=["Alerts & Notifications"])
     async def delete_all_alerts():
