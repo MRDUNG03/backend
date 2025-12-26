@@ -39,11 +39,6 @@ def alert_api(app):
             """)
             alerts = cursor.fetchall()
 
-            # Format thời gian thành chuẩn ISO để frontend parse dễ dàng
-            for alert in alerts:
-                if alert['timestamp']:
-                    alert['timestamp'] = alert['timestamp'].strftime("%Y-%m-%dT%H:%M:%S+07:00")
-
             return alerts
 
         except Exception as e:
