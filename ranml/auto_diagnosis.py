@@ -78,13 +78,14 @@ async def auto_diagnosis_task():
                     if result != "Normal":
                         alert_message = f"Phát hiện lỗi loại '{result}'"
                         alert_cur.execute("""
-                            INSERT INTO alerts (device_id, alert, message, status)
-                            VALUES (%s, %s, %s, %s)
+                            INSERT INTO alerts (device_id, alert, message, status,timestamp)
+                            VALUES (%s, %s, %s, %s,%s)
                         """, (
                             1,                 # device_id (đổi nếu có nhiều motor)
                             result,            # alert
                             alert_message,     # message
-                            "new"              # status
+                            "new",
+                            timestamp_now      # timestamp
                         ))
 
                         print(f"⚠️ ĐÃ GHI NHẬN CẢNH BÁO: {result}")
