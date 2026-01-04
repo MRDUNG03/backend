@@ -6,8 +6,8 @@ from pathlib import Path
 
 # Đường dẫn đúng đến folder random_success (đã tồn tại)
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "random_success" / "rf_model_time_fft.pkl"
-SCALER_PATH = BASE_DIR / "random_success" / "rf_scaler_time_fft.pkl"
+MODEL_PATH = BASE_DIR / "random_success" / "rf_model_time_fft_Nor_Mis.pkl"
+SCALER_PATH = BASE_DIR / "random_success" / "rf_scaler_time_fft_Nor_Mis.pkl"
 
 print("=" * 60)
 print("🔍 KIỂM TRA MODEL & SCALER")
